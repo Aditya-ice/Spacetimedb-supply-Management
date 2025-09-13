@@ -6,8 +6,8 @@ import {
 } from "@mui/material";
 
 // Import the generated DbConnection and table/reducer types
-import { DbConnection } from "./module_bindings";cd
-import { Identity } from "@clockworklabs/spacetimedb-sdk";
+import { DbConnection } from "./module_bindings";
+import { Identity, Timestamp } from "@clockworklabs/spacetimedb-sdk";
 
 const STATUS_OPTIONS = ["processing", "in transit", "delayed", "delivered"];
 
@@ -22,15 +22,26 @@ export default function App() {
   const [sensorReadings, setSensorReadings] = useState([]);
   const [alerts, setAlerts] = useState([]);
 
+  console.log(conn);
+
   const [newShipment, setNewShipment] = useState({
     id: "",
     content: "",
     status: "processing",
     min_temp: "",
     max_temp: "",
-    start_location: "",
-    current_location: "",
-    end_location: "",
+    start_location: {
+      latitude: 0,
+      longitude: 0,
+    },
+    current_location: {
+      latitude: 0,
+      longitude: 0,
+    },
+    end_location: {
+      latitude: 0,
+      longitude: 0,
+    },
     sender_information: "",
     receiver_information: "",
     timestamp: "", // seconds
@@ -55,6 +66,7 @@ export default function App() {
       setIdentity(ident);
       setConnected(true);
       localStorage.setItem("auth_token", token);
+      console.log("Connected with identity:", ident.toHexString());
       subscribeToQueries(c, [
         "SELECT * FROM shipment ORDER BY timestamp DESC",
         "SELECT * FROM sensor_reading ORDER BY timestamp DESC",
@@ -68,9 +80,9 @@ export default function App() {
       c.db.shipment.onDelete((_ctx, row) =>
         setShipments(prev => prev.filter(s => s.id !== row.id)));
 
-      c.db.sensor_reading.onInsert((_ctx, row) =>
+      c.db.sensorReading.onInsert((_ctx, row) =>
         setSensorReadings(prev => [...prev, row]));
-      c.db.sensor_reading.onDelete((_ctx, row) =>
+      c.db.sensorReading.onDelete((_ctx, row) =>
         setSensorReadings(prev => prev.filter(r => r.id !== row.id)));
 
       c.db.alert.onInsert((_ctx, row) => setAlerts(prev => [...prev, row]));
@@ -89,8 +101,9 @@ export default function App() {
       setError(err?.message || String(err));
     };
 
+    console.log("THIS SHOULD ONLY HAPPEN ONE TIME");
     const built = DbConnection.builder()
-      .withUri("ws://localhost:3000")            // host of your SpacetimeDB node
+      .withUri("wss://maincloud.spacetimedb.com")            // host of your SpacetimeDB node
       .withModuleName("supply-chain")            // name you used in `spacetime publish`
       .withToken(localStorage.getItem("auth_token") || "")
       .onConnect(onConnect)
@@ -99,9 +112,6 @@ export default function App() {
       .build();
 
     setConn(built);
-    return () => {
-      try { built.disconnect?.(); } catch {}
-    };
   }, []);
 
   // ---------- action handlers via generated reducers ----------
@@ -123,7 +133,7 @@ export default function App() {
         String(newShipment.end_location),
         String(newShipment.sender_information),
         String(newShipment.receiver_information),
-        Number(ts),
+        Timestamp.fromDate(new Date(ts * 1000)),
       );
 
       setSuccess("Shipment created!");
@@ -133,6 +143,7 @@ export default function App() {
         sender_information: "", receiver_information: "", timestamp: ""
       });
     } catch (e) {
+      console.error(e)
       setError(e.message || String(e));
     }
   };
@@ -143,12 +154,14 @@ export default function App() {
       const ts = Math.floor(Date.now() / 1000);
       await conn.reducers.processSensorReading(
         Number(newReading.shipmentId),
-        Number(ts),
+        Timestamp.fromDate(new Date(ts * 1000)),
         parseFloat(newReading.temperature),
       );
       setSuccess("Sensor reading processed.");
       setNewReading({ shipmentId: "", temperature: "" });
-    } catch (e) {
+    }
+    catch (e) {
+      console.error(e)
       setError(e.message || String(e));
     }
   };
@@ -159,6 +172,7 @@ export default function App() {
       await conn.reducers.getShipmentStatus(Number(shipmentId));
       setSuccess(`Status retrieved for shipment ${shipmentId}`);
     } catch (e) {
+      console.error(e)
       setError(e.message || String(e));
     }
   };
