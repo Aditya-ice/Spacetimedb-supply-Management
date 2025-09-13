@@ -1,91 +1,125 @@
-use spacetimedb::{ReducerContext, Table};
+use spacetimedb::{table, reducer, Table, ReducerContext, Timestamp};
 
-#[spacetimedb::table(name = shipment)]
+// ---------- Tables ----------
+
+#[table(name = shipment, public)]
 pub struct Shipment {
     #[primary_key]
-    pub id: u64,
-    pub name: String,
-    pub status: String,
-    pub min_temp: f32,
-    pub max_temp: f32,
+    id: i32,
+    content: String,
+    status: String,                 // "processing" | "in transit" | "delayed" | "delivered"
+    min_temp: f32,
+    max_temp: f32,
+    current_temp: Option<f32>,
+    start_location: String,
+    current_location: String,
+    end_location: String,
+    sender_information: String,
+    receiver_information: String,
+    timestamp: Timestamp,           // ms since epoch
 }
 
-#[spacetimedb::table(name = sensor_reading)]
+#[table(name = sensor_reading, public)]
 pub struct SensorReading {
     #[primary_key]
-    #[auto_inc]
-    pub id: u64,
-    pub shipment_id: u64,
-    pub timestamp: u64,
-    pub temperature: f32,
+    id: i64,                        // auto-like: use timestamp+shipment to make unique if desired
+    shipment_id: i32,
+    timestamp: Timestamp,
+    temperature: f32,
 }
 
-#[spacetimedb::table(name = alert)]
+#[table(name = alert, public)]
 pub struct Alert {
     #[primary_key]
-    #[auto_inc]
-    pub id: u64,
-    pub shipment_id: u64,
-    pub message: String,
-    pub timestamp: u64,
+    id: i64,
+    shipment_id: i32,
+    timestamp: Timestamp,
+    message: String,
 }
 
-#[spacetimedb::reducer(init)]
-pub fn init(_ctx: &ReducerContext) {
-    // Called when the module is initially published
-    log::info!("Supply Chain Management Module initialized!");
-}
+// ---------- Reducers ----------
 
-#[spacetimedb::reducer]
-pub fn create_shipment(ctx: &ReducerContext, id: u64, name: String, status: String, min_temp: f32, max_temp: f32) {
-    let shipment_name = name.clone();
+#[reducer]
+pub fn create_shipment(
+    ctx: &ReducerContext,
+    id: i32,
+    content: String,
+    status: String,
+    min_temp: f32,
+    max_temp: f32,
+    start_location: String,
+    current_location: String,
+    end_location: String,
+    sender_information: String,
+    receiver_information: String,
+    timestamp: i64, // seconds in your UI; we convert to ms
+) -> Result<(), String> {
+    if Shipment::id().find(id).is_some() {
+        return Err(format!("shipment {id} already exists"));
+    }
+    let ts = Timestamp::from_millis(timestamp * 1000);
     ctx.db.shipment().insert(Shipment {
         id,
-        name,
+        content,
         status,
         min_temp,
         max_temp,
+        current_temp: None,
+        start_location,
+        current_location,
+        end_location,
+        sender_information,
+        receiver_information,
+        timestamp: ts,
     });
-    log::info!("Created shipment: {} with ID: {}", shipment_name, id);
+    Ok(())
 }
 
-#[spacetimedb::reducer]
-pub fn process_sensor_reading(ctx: &ReducerContext, shipment_id: u64, timestamp: u64, temperature: f32) {
-    // First, find the shipment this reading belongs to.
-    let shipment = ctx.db.shipment().iter().find(|s| s.id == shipment_id);
-    
-    if let Some(shipment) = shipment {
-        // Insert the new sensor reading into the table.
-        ctx.db.sensor_reading().insert(SensorReading {
-            id: 0, // autoinc will handle this
+#[reducer]
+pub fn process_sensor_reading(
+    ctx: &ReducerContext,
+    shipment_id: i32,
+    timestamp: i64,    // seconds
+    temperature: f32,
+) -> Result<(), String> {
+    let Some(mut sh) = ctx.db.shipment().id().find(shipment_id) else {
+        return Err(format!("unknown shipment {shipment_id}"));
+    };
+    let now_ms = Timestamp::from_millis(timestamp * 1000);
+    // insert reading
+    let rid = (now_ms.to_millis() as i64) << 8 | (shipment_id as i64 & 0xFF);
+    ctx.db.sensor_reading().insert(SensorReading {
+        id: rid,
+        shipment_id,
+        timestamp: now_ms,
+        temperature,
+    });
+    // update current temp
+    sh.current_temp = Some(temperature);
+    ctx.db.shipment().id().update(sh);
+
+    // emit alert if out of range
+    if temperature < sh.min_temp || temperature > sh.max_temp {
+        let msg = format!(
+            "Temperature out of range: {temperature}°C (allowed {}–{}°C)",
+            sh.min_temp, sh.max_temp
+        );
+        let aid = (now_ms.to_millis() as i64) << 8 | (shipment_id as i64 & 0xFF);
+        ctx.db.alert().insert(Alert {
+            id: aid,
             shipment_id,
-            timestamp,
-            temperature,
+            timestamp: now_ms,
+            message: msg,
         });
-
-        // Check if the temperature is out of bounds.
-        if temperature < shipment.min_temp || temperature > shipment.max_temp {
-            // If it is, create a new alert!
-            ctx.db.alert().insert(Alert {
-                id: 0, // autoinc will handle this
-                shipment_id,
-                message: format!("ALERT: Temperature excursion! Current: {}°C", temperature),
-                timestamp,
-            });
-            log::warn!("Temperature alert for shipment {}: {}°C", shipment_id, temperature);
-        } else {
-            log::info!("Normal temperature reading for shipment {}: {}°C", shipment_id, temperature);
-        }
-    } else {
-        log::error!("Shipment not found with ID: {}", shipment_id);
     }
+    Ok(())
 }
 
-#[spacetimedb::reducer]
-pub fn get_shipment_status(ctx: &ReducerContext, shipment_id: u64) {
-    if let Some(shipment) = ctx.db.shipment().iter().find(|s| s.id == shipment_id) {
-        log::info!("Shipment {}: {} - Status: {}", shipment.id, shipment.name, shipment.status);
-    } else {
-        log::error!("Shipment not found with ID: {}", shipment_id);
+#[reducer]
+pub fn get_shipment_status(ctx: &ReducerContext, shipment_id: i32) -> Result<(), String> {
+    if ctx.db.shipment().id().find(shipment_id).is_none() {
+        return Err(format!("unknown shipment {shipment_id}"));
     }
+    // No-op reducer (kept for parity with your UI). Could compute/return more info if desired.
+    Ok(())
 }
