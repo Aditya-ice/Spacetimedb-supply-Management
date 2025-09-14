@@ -94,7 +94,7 @@ export default function App() {
     console.log("THIS SHOULD ONLY HAPPEN ONE TIME");
     const built = DbConnection.builder()
       .withUri("wss://maincloud.spacetimedb.com")            // host of your SpacetimeDB node
-      .withModuleName("supply-chain")            // name you used in `spacetime publish`
+      .withModuleName("hophacks-sxt")            // name you used in `spacetime publish`
       .withToken(localStorage.getItem("auth_token") || "")
       .onConnect(onConnect)
       .onDisconnect(onDisconnect)
