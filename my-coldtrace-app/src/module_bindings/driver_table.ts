@@ -32,7 +32,7 @@ import {
   type ReducerEventContextInterface,
   type SubscriptionEventContextInterface,
 } from "@clockworklabs/spacetimedb-sdk";
-import { Transporter } from "./transporter_type";
+import { Driver } from "./driver_type";
 import { LatLongLocation as __LatLongLocation } from "./lat_long_location_type";
 
 import { type EventContext, type Reducer, RemoteReducers, RemoteTables } from ".";
@@ -48,9 +48,9 @@ import { type EventContext, type Reducer, RemoteReducers, RemoteTables } from ".
  * like `ctx.db.driver.on_insert(...)`.
  */
 export class DriverTableHandle {
-  tableCache: TableCache<Transporter>;
+  tableCache: TableCache<Driver>;
 
-  constructor(tableCache: TableCache<Transporter>) {
+  constructor(tableCache: TableCache<Driver>) {
     this.tableCache = tableCache;
   }
 
@@ -58,7 +58,7 @@ export class DriverTableHandle {
     return this.tableCache.count();
   }
 
-  iter(): Iterable<Transporter> {
+  iter(): Iterable<Driver> {
     return this.tableCache.iter();
   }
   /**
@@ -75,7 +75,7 @@ export class DriverTableHandle {
   id = {
     // Find the subscribed row whose `id` column value is equal to `col_val`,
     // if such a row is present in the client cache.
-    find: (col_val: bigint): Transporter | undefined => {
+    find: (col_val: bigint): Driver | undefined => {
       for (let row of this.tableCache.iter()) {
         if (deepEqual(row.id, col_val)) {
           return row;
@@ -84,27 +84,27 @@ export class DriverTableHandle {
     },
   };
 
-  onInsert = (cb: (ctx: EventContext, row: Transporter) => void) => {
+  onInsert = (cb: (ctx: EventContext, row: Driver) => void) => {
     return this.tableCache.onInsert(cb);
   }
 
-  removeOnInsert = (cb: (ctx: EventContext, row: Transporter) => void) => {
+  removeOnInsert = (cb: (ctx: EventContext, row: Driver) => void) => {
     return this.tableCache.removeOnInsert(cb);
   }
 
-  onDelete = (cb: (ctx: EventContext, row: Transporter) => void) => {
+  onDelete = (cb: (ctx: EventContext, row: Driver) => void) => {
     return this.tableCache.onDelete(cb);
   }
 
-  removeOnDelete = (cb: (ctx: EventContext, row: Transporter) => void) => {
+  removeOnDelete = (cb: (ctx: EventContext, row: Driver) => void) => {
     return this.tableCache.removeOnDelete(cb);
   }
 
   // Updates are only defined for tables with primary keys.
-  onUpdate = (cb: (ctx: EventContext, oldRow: Transporter, newRow: Transporter) => void) => {
+  onUpdate = (cb: (ctx: EventContext, oldRow: Driver, newRow: Driver) => void) => {
     return this.tableCache.onUpdate(cb);
   }
 
-  removeOnUpdate = (cb: (ctx: EventContext, onRow: Transporter, newRow: Transporter) => void) => {
+  removeOnUpdate = (cb: (ctx: EventContext, onRow: Driver, newRow: Driver) => void) => {
     return this.tableCache.removeOnUpdate(cb);
   }}

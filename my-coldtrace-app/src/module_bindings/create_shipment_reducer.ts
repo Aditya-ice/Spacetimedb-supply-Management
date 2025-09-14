@@ -38,12 +38,15 @@ import { LatLongLocation as __LatLongLocation } from "./lat_long_location_type";
 export type CreateShipment = {
   id: number,
   content: string,
+  status: string,
   minTemp: number,
   maxTemp: number,
   startLocation: __LatLongLocation,
+  currentLocation: __LatLongLocation,
   endLocation: __LatLongLocation,
   senderInformation: string,
   receiverInformation: string,
+  timestamp: Timestamp,
 };
 
 /**
@@ -58,12 +61,15 @@ export namespace CreateShipment {
     return AlgebraicType.createProductType([
       new ProductTypeElement("id", AlgebraicType.createI32Type()),
       new ProductTypeElement("content", AlgebraicType.createStringType()),
+      new ProductTypeElement("status", AlgebraicType.createStringType()),
       new ProductTypeElement("minTemp", AlgebraicType.createF32Type()),
       new ProductTypeElement("maxTemp", AlgebraicType.createF32Type()),
       new ProductTypeElement("startLocation", __LatLongLocation.getTypeScriptAlgebraicType()),
+      new ProductTypeElement("currentLocation", __LatLongLocation.getTypeScriptAlgebraicType()),
       new ProductTypeElement("endLocation", __LatLongLocation.getTypeScriptAlgebraicType()),
       new ProductTypeElement("senderInformation", AlgebraicType.createStringType()),
       new ProductTypeElement("receiverInformation", AlgebraicType.createStringType()),
+      new ProductTypeElement("timestamp", AlgebraicType.createTimestampType()),
     ]);
   }
 

@@ -43,6 +43,15 @@ pub struct Alert {
     message: String,
 }
 
+#[table(name = driver, public)]
+pub struct Driver {
+    #[primary_key]
+    id: u64,
+    status: String, // "available" | "busy" | "offline"
+    current_location: LatLongLocation,
+    timestamp: Timestamp,
+}
+
 // ---------- Reducers ----------
 
 #[reducer]
@@ -125,5 +134,25 @@ pub fn get_shipment_status(ctx: &ReducerContext, shipment_id: i32) -> Result<(),
         return Err(format!("unknown shipment {shipment_id}"));
     }
     // No-op reducer (kept for parity with your UI). Could compute/return more info if desired.
+    Ok(())
+}
+
+#[reducer]
+pub fn create_driver(
+    ctx: &ReducerContext,
+    id: u64,
+    status: String,
+    current_location: LatLongLocation,
+    timestamp: Timestamp,
+) -> Result<(), String> {
+    if ctx.db.driver().id().find(id).is_some() {
+        return Err(format!("driver {id} already exists"));
+    }
+    ctx.db.driver().insert(Driver {
+        id,
+        status,
+        current_location,
+        timestamp,
+    });
     Ok(())
 }

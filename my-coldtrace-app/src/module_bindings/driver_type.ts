@@ -34,7 +34,7 @@ import {
 } from "@clockworklabs/spacetimedb-sdk";
 import { LatLongLocation as __LatLongLocation } from "./lat_long_location_type";
 
-export type Transporter = {
+export type Driver = {
   id: bigint,
   status: string,
   currentLocation: __LatLongLocation,
@@ -44,7 +44,7 @@ export type Transporter = {
 /**
  * A namespace for generated helper functions.
  */
-export namespace Transporter {
+export namespace Driver {
   /**
   * A function which returns this type represented as an AlgebraicType.
   * This function is derived from the AlgebraicType used to generate this type.
@@ -58,12 +58,12 @@ export namespace Transporter {
     ]);
   }
 
-  export function serialize(writer: BinaryWriter, value: Transporter): void {
-    Transporter.getTypeScriptAlgebraicType().serialize(writer, value);
+  export function serialize(writer: BinaryWriter, value: Driver): void {
+    Driver.getTypeScriptAlgebraicType().serialize(writer, value);
   }
 
-  export function deserialize(reader: BinaryReader): Transporter {
-    return Transporter.getTypeScriptAlgebraicType().deserialize(reader);
+  export function deserialize(reader: BinaryReader): Driver {
+    return Driver.getTypeScriptAlgebraicType().deserialize(reader);
   }
 
 }

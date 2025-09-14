@@ -33,15 +33,14 @@ import {
   type SubscriptionEventContextInterface,
 } from "@clockworklabs/spacetimedb-sdk";
 
-export type AssignDriverToShipment = {
+export type GetShipmentStatus = {
   shipmentId: number,
-  driverId: bigint,
 };
 
 /**
  * A namespace for generated helper functions.
  */
-export namespace AssignDriverToShipment {
+export namespace GetShipmentStatus {
   /**
   * A function which returns this type represented as an AlgebraicType.
   * This function is derived from the AlgebraicType used to generate this type.
@@ -49,16 +48,15 @@ export namespace AssignDriverToShipment {
   export function getTypeScriptAlgebraicType(): AlgebraicType {
     return AlgebraicType.createProductType([
       new ProductTypeElement("shipmentId", AlgebraicType.createI32Type()),
-      new ProductTypeElement("driverId", AlgebraicType.createU64Type()),
     ]);
   }
 
-  export function serialize(writer: BinaryWriter, value: AssignDriverToShipment): void {
-    AssignDriverToShipment.getTypeScriptAlgebraicType().serialize(writer, value);
+  export function serialize(writer: BinaryWriter, value: GetShipmentStatus): void {
+    GetShipmentStatus.getTypeScriptAlgebraicType().serialize(writer, value);
   }
 
-  export function deserialize(reader: BinaryReader): AssignDriverToShipment {
-    return AssignDriverToShipment.getTypeScriptAlgebraicType().deserialize(reader);
+  export function deserialize(reader: BinaryReader): GetShipmentStatus {
+    return GetShipmentStatus.getTypeScriptAlgebraicType().deserialize(reader);
   }
 
 }

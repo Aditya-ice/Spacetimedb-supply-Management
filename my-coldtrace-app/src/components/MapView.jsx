@@ -66,7 +66,7 @@ export default function MapView({ shipments = [], selectedId, onSelect }) {
                 <b>Truck #{s.id}</b><br />
                 {s.content || "—"}<br />
                 Status: {s.status}<br />
-                Temp: {s.current_temp ?? "—"}°C<br />
+                Temp: {s.currentTemp ?? "—"}°C<br />
                 <small>{new Date(tsToMillis(s.timestamp)).toLocaleString()}</small>
               </div>
             </Popup>

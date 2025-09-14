@@ -3,11 +3,14 @@ import {
   Paper, Typography, List, ListItem, ListItemText,
   TextField, Button, Box, Divider, IconButton, Collapse
 } from "@mui/material";
-import { Add, ExpandLess, ExpandMore } from "@mui/icons-material";
+// import { Add, ExpandLess, ExpandMore } from "@mui/icons-material";
 import { parseLocation } from "../utils";
 
 export default function TruckList({ shipments, selectedId, onSelect, onCreateShipment }) {
   const [showForm, setShowForm] = useState(false);
+  
+  // Debug shipments prop
+  console.log("📋 TruckList received shipments:", shipments.length, shipments);
   const [newShipment, setNewShipment] = useState({
     id: "",
     content: "",
@@ -37,13 +40,13 @@ export default function TruckList({ shipments, selectedId, onSelect, onCreateShi
   return (
     <Paper sx={{ p: 2, height: "100%", display: "flex", flexDirection: "column" }}>
       <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1 }}>
-        <Typography variant="h6">Trucks</Typography>
+        <Typography variant="h6">Shipments</Typography>
         <IconButton
           size="small"
           onClick={() => setShowForm(!showForm)}
           color="primary"
         >
-          {showForm ? <ExpandLess /> : <Add />}
+          {showForm ? "−" : "+"}
         </IconButton>
       </Box>
 
@@ -169,7 +172,7 @@ export default function TruckList({ shipments, selectedId, onSelect, onCreateShi
                 <ListItemText
                   primary={`Truck #${s.id} — ${s.status}`}
                   secondary={
-                    (s.current_temp != null ? `Temp ${s.current_temp}°C • ` : "") +
+                    (s.currentTemp != null ? `Temp ${s.currentTemp}°C • ` : "") +
                     (loc ? `${loc[0].toFixed(3)}, ${loc[1].toFixed(3)}` : "no location")
                   }
                 />

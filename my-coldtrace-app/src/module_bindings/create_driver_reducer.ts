@@ -39,6 +39,7 @@ export type CreateDriver = {
   id: bigint,
   status: string,
   currentLocation: __LatLongLocation,
+  timestamp: Timestamp,
 };
 
 /**
@@ -54,6 +55,7 @@ export namespace CreateDriver {
       new ProductTypeElement("id", AlgebraicType.createU64Type()),
       new ProductTypeElement("status", AlgebraicType.createStringType()),
       new ProductTypeElement("currentLocation", __LatLongLocation.getTypeScriptAlgebraicType()),
+      new ProductTypeElement("timestamp", AlgebraicType.createTimestampType()),
     ]);
   }
 

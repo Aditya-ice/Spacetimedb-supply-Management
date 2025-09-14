@@ -47,7 +47,6 @@ export type Shipment = {
   senderInformation: string,
   receiverInformation: string,
   timestamp: Timestamp,
-  assignedDriverId: bigint | undefined,
 };
 
 /**
@@ -72,7 +71,6 @@ export namespace Shipment {
       new ProductTypeElement("senderInformation", AlgebraicType.createStringType()),
       new ProductTypeElement("receiverInformation", AlgebraicType.createStringType()),
       new ProductTypeElement("timestamp", AlgebraicType.createTimestampType()),
-      new ProductTypeElement("assignedDriverId", AlgebraicType.createOptionType(AlgebraicType.createU64Type())),
     ]);
   }
 
