@@ -1,135 +1,117 @@
 import React, { useState } from "react";
-import {
-  Paper, Typography, List, ListItem, ListItemText,
-  TextField, Button, Box, Divider, IconButton, Collapse
-} from "@mui/material";
-// import { Add, ExpandLess, ExpandMore } from "@mui/icons-material";
-import { parseLocation } from "../utils";
+import { Button, TextField, Box, Typography, Paper } from "@mui/material";
 
-export default function DriverList({ drivers, selectedId, onSelect, onCreateDriver }) {
-  const [showForm, setShowForm] = useState(false);
-  
-  // Debug drivers prop
-  console.log("🚛 DriverList received drivers:", drivers.length, drivers);
-  
+// This is the combined and corrected component.
+// It includes both fixes:
+// 1. `drivers = []` to prevent the '.map is not a function' error.
+// 2. The `handleCreate` function validates and parses form data correctly.
+
+const DriverList = ({ drivers = [], selectedId, onSelect, onCreateDriver }) => {
   const [newDriver, setNewDriver] = useState({
     id: "",
-    status: "available",
+    status: "available", // Default status
     current_lat: "",
     current_lng: "",
   });
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (onCreateDriver) {
-      await onCreateDriver(newDriver);
-      setNewDriver({
-        id: "", status: "available", current_lat: "", current_lng: ""
-      });
-      setShowForm(false);
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setNewDriver((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleCreate = () => {
+    // --- FIX #1: VALIDATION AND PARSING ---
+    // Check for empty fields before submitting
+    if (!newDriver.id || !newDriver.current_lat || !newDriver.current_lng) {
+      alert("Please fill in all fields for the new driver.");
+      return;
     }
+
+    // Ensure numeric values are correctly parsed
+    const driverData = {
+      ...newDriver,
+      id: BigInt(newDriver.id), // Convert to BigInt as per backend schema
+      current_lat: parseFloat(newDriver.current_lat),
+      current_lng: parseFloat(newDriver.current_lng),
+    };
+
+    onCreateDriver(driverData);
+
+    // Reset form after submission
+    setNewDriver({ id: "", status: "available", current_lat: "", current_lng: "" });
   };
 
   return (
-    <Paper sx={{ p: 2, height: "100%", display: "flex", flexDirection: "column" }}>
-      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1 }}>
-        <Typography variant="h6">Drivers</Typography>
-        <IconButton
-          size="small"
-          onClick={() => setShowForm(!showForm)}
-          color="primary"
-        >
-          {showForm ? "−" : "+"}
-        </IconButton>
+    <Box sx={{ p: 2, display: "flex", flexDirection: "column", height: "100%" }}>
+      <Typography variant="h6" sx={{ mb: 1 }}>
+        Drivers
+      </Typography>
+      <Box sx={{ flexGrow: 1, overflowY: "auto", pr: 1 }}>
+        {/* --- FIX #2: `drivers` is now guaranteed to be an array --- */}
+        {drivers.map((driver) => (
+          <Paper
+            key={String(driver.id)}
+            onClick={() => onSelect(String(driver.id))}
+            elevation={selectedId === String(driver.id) ? 4 : 1}
+            sx={{
+              p: 1.5,
+              mb: 1,
+              cursor: "pointer",
+              border: selectedId === String(driver.id) ? "2px solid #1976d2" : "2px solid transparent",
+              transition: "border 0.2s, box-shadow 0.2s",
+            }}
+          >
+            <Typography variant="body2">
+              <strong>ID:</strong> {String(driver.id)}
+            </Typography>
+            <Typography variant="body2">
+              <strong>Status:</strong> {driver.status}
+            </Typography>
+          </Paper>
+        ))}
       </Box>
-
-      <Collapse in={showForm}>
-        <Box component="form" onSubmit={handleSubmit} sx={{ mb: 2, p: 2, bgcolor: "#f5f5f5", borderRadius: 1 }}>
-          <Typography variant="subtitle2" gutterBottom>Add New Driver</Typography>
-          <Box sx={{ display: "grid", gap: 1, gridTemplateColumns: "1fr 1fr" }}>
-            <TextField
-              size="small"
-              label="Driver ID"
-              type="number"
-              value={newDriver.id}
-              onChange={e => setNewDriver(s => ({ ...s, id: e.target.value }))}
-              required
-            />
-            <TextField
-              size="small"
-              label="Status"
-              select
-              value={newDriver.status}
-              onChange={e => setNewDriver(s => ({ ...s, status: e.target.value }))}
-              SelectProps={{ native: true }}
-              required
-            >
-              <option value="available">Available</option>
-              <option value="busy">Busy</option>
-              <option value="offline">Offline</option>
-            </TextField>
-            <TextField
-              size="small"
-              label="Current Lat"
-              type="number"
-              step="0.000001"
-              value={newDriver.current_lat}
-              onChange={e => setNewDriver(s => ({ ...s, current_lat: e.target.value }))}
-              required
-            />
-            <TextField
-              size="small"
-              label="Current Lng"
-              type="number"
-              step="0.000001"
-              value={newDriver.current_lng}
-              onChange={e => setNewDriver(s => ({ ...s, current_lng: e.target.value }))}
-              required
-            />
-          </Box>
-          <Box sx={{ display: "flex", gap: 1, mt: 2 }}>
-            <Button type="submit" variant="contained" size="small">
-              Create Driver
-            </Button>
-            <Button
-              type="button"
-              variant="outlined"
-              size="small"
-              onClick={() => setShowForm(false)}
-            >
-              Cancel
-            </Button>
-          </Box>
-        </Box>
-      </Collapse>
-
-      <Divider sx={{ mb: 1 }} />
-
-      <div style={{ overflowY: "auto", flex: 1 }}>
-        <List dense>
-          {drivers.map((d) => {
-            const isSel = d.id === selectedId;
-            const loc = parseLocation(d.currentLocation);
-            return (
-              <ListItem
-                key={d.id.toString()}
-                button
-                selected={isSel}
-                onClick={() => onSelect?.(d.id)}
-                sx={{ borderRadius: 2, mb: 0.5 }}
-              >
-                <ListItemText
-                  primary={`Driver #${d.id} — ${d.status}`}
-                  secondary={
-                    loc ? `${loc[0].toFixed(3)}, ${loc[1].toFixed(3)}` : "no location"
-                  }
-                />
-              </ListItem>
-            );
-          })}
-          {!drivers.length && <ListItem><ListItemText primary="No drivers yet" /></ListItem>}
-        </List>
-      </div>
-    </Paper>
+      <Box component="form" noValidate autoComplete="off" sx={{ mt: 2 }}>
+        <Typography variant="subtitle1" sx={{ mb: 1 }}>
+          Add New Driver
+        </Typography>
+        <TextField
+          label="Driver ID"
+          name="id"
+          value={newDriver.id}
+          onChange={handleInputChange}
+          fullWidth
+          margin="dense"
+          size="small"
+        />
+        <TextField
+          label="Latitude"
+          name="current_lat"
+          value={newDriver.current_lat}
+          onChange={handleInputChange}
+          fullWidth
+          margin="dense"
+          size="small"
+        />
+        <TextField
+          label="Longitude"
+          name="current_lng"
+          value={newDriver.current_lng}
+          onChange={handleInputChange}
+          fullWidth
+          margin="dense"
+          size="small"
+        />
+        <Button
+          variant="contained"
+          onClick={handleCreate}
+          fullWidth
+          sx={{ mt: 1 }}
+        >
+          Add Driver
+        </Button>
+      </Box>
+    </Box>
   );
-}
+};
+
+export default DriverList;

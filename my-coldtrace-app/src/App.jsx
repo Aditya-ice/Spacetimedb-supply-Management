@@ -53,7 +53,7 @@ export default function App() {
       c?.subscriptionBuilder()
         .onApplied(() => {
           console.log("SDK client cache initialized.");
-          
+
           // Load initial data after subscription is applied
           console.log("🔍 Attempting to load initial data...");
           console.log("🔍 Available tables:", Object.keys(c.db));
@@ -63,7 +63,7 @@ export default function App() {
             alert: typeof c.db.alert,
             sensorReading: typeof c.db.sensorReading
           });
-          
+
           try {
             console.log("🔍 Loading shipments...");
             const initialShipments = c.db.shipment.iter().collect();
@@ -73,7 +73,7 @@ export default function App() {
             const initialAlerts = c.db.alert.iter().collect();
             console.log("🔍 Loading drivers...");
             const initialDrivers = c.db.driver.iter().collect();
-            
+
             console.log("✅ Initial data loaded after subscription:", {
               shipments: initialShipments.length,
               sensorReadings: initialSensorReadings.length,
@@ -82,7 +82,7 @@ export default function App() {
               shipmentData: initialShipments,
               driverData: initialDrivers
             });
-            
+
             setShipments(initialShipments);
             setSensorReadings(initialSensorReadings);
             setAlerts(initialAlerts);
@@ -186,7 +186,7 @@ export default function App() {
     console.log("🌐 Connecting to SpacetimeDB...");
     console.log("📦 Module name: hophacks-sxt-supply");
     console.log("🌐 Server URI: wss://maincloud.spacetimedb.com");
-    
+
     const built = DbConnection.builder()
       .withUri("wss://maincloud.spacetimedb.com") // host of your SpacetimeDB node
       .withModuleName("hophacks-sxt-supply")             // name you used in `spacetime publish`
@@ -374,7 +374,7 @@ export default function App() {
                 onCreateShipment={handleCreateShipment}
               />
             </Box>
-            
+
             {/* DRIVERS PANE */}
             <Box sx={{ flex: "0 0 50%" }}>
               <DriverList
