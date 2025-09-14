@@ -17,7 +17,7 @@ export default function App() {
   // Existing state
   const [conn, setConn] = useState(null); // DbConnection | null
   const [connected, setConnected] = useState(false);
-  const [identity, setIdentity] = useState(/** @type {Identity|null} */ (null));
+  const [identity, setIdentity] = useState(/** @type {Identity|null} */(null));
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
 
@@ -28,11 +28,11 @@ export default function App() {
   // New local UI state (for selecting a truck and toggling alert list)
   const [selectedId, setSelectedId] = useState(null);
   const [showAllAlerts, setShowAllAlerts] = useState(false);
-  
+
   // Map
   const wrapRef = useRef(null);
   const [remountKey, setRemountKey] = useState(0);
-  
+
 
   // ---------- connect & subscribe (UNCHANGED) ----------
   useEffect(() => {
@@ -90,7 +90,7 @@ export default function App() {
     console.log("THIS SHOULD ONLY HAPPEN ONE TIME");
     const built = DbConnection.builder()
       .withUri("wss://maincloud.spacetimedb.com") // host of your SpacetimeDB node
-      .withModuleName("supply-chain")             // name you used in `spacetime publish`
+      .withModuleName("hophacks-sxt")             // name you used in `spacetime publish`
       .withToken(localStorage.getItem("auth_token") || "")
       .onConnect(onConnect)
       .onDisconnect(onDisconnect)
@@ -99,6 +99,35 @@ export default function App() {
 
     setConn(built);
   }, []);
+
+  // ---------- Shipment creation handler ----------
+  const handleCreateShipment = async (shipmentData) => {
+    try {
+      if (!conn) throw new Error("Not connected");
+
+      await conn.reducers.createShipment(
+        Number(shipmentData.id),
+        String(shipmentData.content),
+        parseFloat(shipmentData.min_temp),
+        parseFloat(shipmentData.max_temp),
+        {
+          latitude: parseFloat(shipmentData.start_lat),
+          longitude: parseFloat(shipmentData.start_lng)
+        },
+        {
+          latitude: parseFloat(shipmentData.end_lat),
+          longitude: parseFloat(shipmentData.end_lng)
+        },
+        String(shipmentData.sender_information),
+        String(shipmentData.receiver_information),
+      );
+
+      setSuccess("Shipment created successfully!");
+    } catch (e) {
+      console.error(e);
+      setError(e.message || String(e));
+    }
+  };
 
   // ---------- UI (new layout per your sketch) ----------
   return (
@@ -149,31 +178,32 @@ export default function App() {
 
         {/* TRUCK LIST */}
         <Grid item sx={{ flex: "0 0 34vw" }}>
-            <Box
-              sx={{
-                height: "70vh",
-                minHeight: 350,
-                borderRadius: 1,
-                overflow: "hidden",
-                bgcolor: "#f6f6f6",
-                border: "1px solid #e0e0e0",
-              }}
-            >
-              <TruckList
-                shipments={shipments}
-                selectedId={selectedId}
-                onSelect={setSelectedId}
-              />
-            </Box>
+          <Box
+            sx={{
+              height: "70vh",
+              minHeight: 350,
+              borderRadius: 1,
+              overflow: "hidden",
+              bgcolor: "#f6f6f6",
+              border: "1px solid #e0e0e0",
+            }}
+          >
+            <TruckList
+              shipments={shipments}
+              selectedId={selectedId}
+              onSelect={setSelectedId}
+              onCreateShipment={handleCreateShipment}
+            />
+          </Box>
         </Grid>
       </Grid>
 
       {/* ALERT FEED (bottom full-width) */}
-        <AlertFeed
-          alerts={alerts}
-          showAll={showAllAlerts}
-          onToggle={setShowAllAlerts}
-        />
+      <AlertFeed
+        alerts={alerts}
+        showAll={showAllAlerts}
+        onToggle={setShowAllAlerts}
+      />
     </Container>
   );
 }
