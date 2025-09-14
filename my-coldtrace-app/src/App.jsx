@@ -1,20 +1,23 @@
-import React, { useEffect, useState } from "react";
-import {
-  Container, Typography, Box, Paper, Grid, Button, TextField,
-  Alert as MuiAlert, Chip, Card, CardContent, CardActions,
-  List, ListItem, ListItemText
-} from "@mui/material";
+import React, { useEffect, useState, useRef } from "react";
+import { Container, Typography, Box, Grid, Alert as MuiAlert, Chip } from "@mui/material";
 
-// Import the generated DbConnection and table/reducer types
+// ---- SpacetimeDB (unchanged) ----
 import { DbConnection } from "./module_bindings";
-import { Identity, Timestamp } from "@clockworklabs/spacetimedb-sdk";
+import { Identity } from "@clockworklabs/spacetimedb-sdk";
 
-const STATUS_OPTIONS = ["Processing", "In Transit", "Delayed", "Delivered"];
+// ---- Map styles (safe to keep here if not imported in main.jsx) ----
+import "leaflet/dist/leaflet.css";
+
+// ---- Components (pure JSX) ----
+import MapView from "./components/MapView";
+import TruckList from "./components/TruckList";
+import AlertFeed from "./components/AlertFeed";
 
 export default function App() {
-  const [conn, setConn] = useState(null);              // DbConnection | null
+  // Existing state
+  const [conn, setConn] = useState(null); // DbConnection | null
   const [connected, setConnected] = useState(false);
-  const [identity, setIdentity] = useState(/** @type {Identity|null} */(null));
+  const [identity, setIdentity] = useState(/** @type {Identity|null} */ (null));
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
 
@@ -22,24 +25,16 @@ export default function App() {
   const [sensorReadings, setSensorReadings] = useState([]);
   const [alerts, setAlerts] = useState([]);
 
-  console.log(conn);
+  // New local UI state (for selecting a truck and toggling alert list)
+  const [selectedId, setSelectedId] = useState(null);
+  const [showAllAlerts, setShowAllAlerts] = useState(false);
+  
+  // Map
+  const wrapRef = useRef(null);
+  const [remountKey, setRemountKey] = useState(0);
+  
 
-  const [newShipment, setNewShipment] = useState({
-    id: "",
-    content: "",
-    min_temp: "",
-    max_temp: "",
-    start_lat: "",
-    start_lng: "",
-    end_lat: "",
-    end_lng: "",
-    sender_information: "",
-    receiver_information: "",
-  });
-
-  const [newReading, setNewReading] = useState({ shipmentId: "", temperature: "" });
-
-  // ---------- connect & subscribe ----------
+  // ---------- connect & subscribe (UNCHANGED) ----------
   useEffect(() => {
     const subscribeToQueries = (c, queries) => {
       c?.subscriptionBuilder()
@@ -57,6 +52,7 @@ export default function App() {
       setConnected(true);
       localStorage.setItem("auth_token", token);
       console.log("Connected with identity:", ident.toHexString());
+
       subscribeToQueries(c, [
         "SELECT * FROM shipment ORDER BY timestamp DESC",
         "SELECT * FROM sensor_reading ORDER BY timestamp DESC",
@@ -75,7 +71,7 @@ export default function App() {
       c.db.sensorReading.onDelete((_ctx, row) =>
         setSensorReadings(prev => prev.filter(r => r.id !== row.id)));
 
-      c.db.alert.onInsert((_ctx, row) => setAlerts(prev => [...prev, row]));
+      c.db.alert.onInsert((_ctx, row) => setAlerts(prev => [row, ...prev]));
       c.db.alert.onDelete((_ctx, row) => setAlerts(prev => prev.filter(a => a.id !== row.id)));
 
       console.log("Connected with identity:", ident.toHexString());
@@ -93,8 +89,8 @@ export default function App() {
 
     console.log("THIS SHOULD ONLY HAPPEN ONE TIME");
     const built = DbConnection.builder()
-      .withUri("wss://maincloud.spacetimedb.com")            // host of your SpacetimeDB node
-      .withModuleName("hophacks-sxt")            // name you used in `spacetime publish`
+      .withUri("wss://maincloud.spacetimedb.com") // host of your SpacetimeDB node
+      .withModuleName("supply-chain")             // name you used in `spacetime publish`
       .withToken(localStorage.getItem("auth_token") || "")
       .onConnect(onConnect)
       .onDisconnect(onDisconnect)
@@ -104,121 +100,70 @@ export default function App() {
     setConn(built);
   }, []);
 
-  // ---------- action handlers via generated reducers ----------
-  const handleCreateShipment = async () => {
-    try {
-      if (!conn) throw new Error("Not connected");
-
-      await conn.reducers.createShipment(
-        Number(newShipment.id),
-        String(newShipment.content),
-        parseFloat(newShipment.min_temp),
-        parseFloat(newShipment.max_temp),
-        {
-          latitude: parseFloat(newShipment.start_lat),
-          longitude: parseFloat(newShipment.start_lng)
-        },
-        {
-          latitude: parseFloat(newShipment.end_lat),
-          longitude: parseFloat(newShipment.end_lng)
-        },
-        String(newShipment.sender_information),
-        String(newShipment.receiver_information),
-      );
-
-      setSuccess("Shipment created!");
-      setNewShipment({
-        id: "", content: "", min_temp: "", max_temp: "",
-        start_lat: "", start_lng: "", end_lat: "", end_lng: "",
-        sender_information: "", receiver_information: ""
-      });
-    } catch (e) {
-      console.error(e)
-      setError(e.message || String(e));
-    }
-  };
-
-  const handleProcessReading = async () => {
-    try {
-      if (!conn) throw new Error("Not connected");
-      const ts = Math.floor(Date.now() / 1000);
-      await conn.reducers.processSensorReading(
-        Number(newReading.shipmentId),
-        Timestamp.fromDate(new Date(ts * 1000)),
-        parseFloat(newReading.temperature),
-      );
-      setSuccess("Sensor reading processed.");
-      setNewReading({ shipmentId: "", temperature: "" });
-    }
-    catch (e) {
-      console.error(e)
-      setError(e.message || String(e));
-    }
-  };
-
-  const handleGetStatus = async (shipmentId) => {
-    // This function is not implemented in the backend yet
-    setSuccess(`Shipment ${shipmentId} status: Available in database`);
-  };
-
-  // ---------- UI ----------
+  // ---------- UI (new layout per your sketch) ----------
   return (
-    <Container maxWidth="lg" sx={{ mt: 4, mb: 6 }}>
-      <Box sx={{ mb: 3 }}>
-        <Typography variant="h4" align="center">🚚 ColdTrace — Live</Typography>
-        <Box sx={{ display: "flex", justifyContent: "center", mt: 1 }}>
-          <Chip
-            label={connected ? "🟢 Connected" : "🔴 Disconnected"}
-            color={connected ? "success" : "error"}
-            variant="outlined"
-          />
-        </Box>
+    <Container maxWidth="xl" sx={{ mt: 2, mb: 4 }}>
+      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1 }}>
+        <Typography variant="h4" sx={{ fontWeight: 700, letterSpacing: 1 }}>
+          COLD TRACE
+        </Typography>
+        <Chip
+          label={connected ? "🟢 Connected" : error ? "⚠️ Error" : "🔴 Disconnected"}
+          color={connected ? "success" : error ? "warning" : "default"}
+          variant="outlined"
+        />
       </Box>
 
-      {error && <MuiAlert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</MuiAlert>}
-      {success && <MuiAlert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess(null)}>{success}</MuiAlert>}
+      {error && (
+        <MuiAlert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
+          {error}
+        </MuiAlert>
+      )}
+      {success && (
+        <MuiAlert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess(null)}>
+          {success}
+        </MuiAlert>
+      )}
 
-      <Grid container spacing={3}>
-        {/* Create Shipment */}
-        <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 3 }}>
-            <Typography variant="h6" gutterBottom>📦 Create Shipment</Typography>
-            <Box sx={{ display: "grid", gap: 1.5 }}>
-              <TextField label="ID" type="number" value={newShipment.id}
-                onChange={e => setNewShipment(s => ({ ...s, id: e.target.value }))} />
-              <TextField label="Content" value={newShipment.content}
-                onChange={e => setNewShipment(s => ({ ...s, content: e.target.value }))} />
-              <TextField label="Min Temp (°C)" type="number" value={newShipment.min_temp}
-                onChange={e => setNewShipment(s => ({ ...s, min_temp: e.target.value }))} />
-              <TextField label="Max Temp (°C)" type="number" value={newShipment.max_temp}
-                onChange={e => setNewShipment(s => ({ ...s, max_temp: e.target.value }))} />
-              <TextField label="Start Latitude" type="number" step="0.000001" value={newShipment.start_lat}
-                onChange={e => setNewShipment(s => ({ ...s, start_lat: e.target.value }))} />
-              <TextField label="Start Longitude" type="number" step="0.000001" value={newShipment.start_lng}
-                onChange={e => setNewShipment(s => ({ ...s, start_lng: e.target.value }))} />
-              <TextField label="End Latitude" type="number" step="0.000001" value={newShipment.end_lat}
-                onChange={e => setNewShipment(s => ({ ...s, end_lat: e.target.value }))} />
-              <TextField label="End Longitude" type="number" step="0.000001" value={newShipment.end_lng}
-                onChange={e => setNewShipment(s => ({ ...s, end_lng: e.target.value }))} />
-              <TextField label="Sender Info" value={newShipment.sender_information}
-                onChange={e => setNewShipment(s => ({ ...s, sender_information: e.target.value }))} />
-              <TextField label="Receiver Info" value={newShipment.receiver_information}
-                onChange={e => setNewShipment(s => ({ ...s, receiver_information: e.target.value }))} />
-              <Button variant="contained" onClick={handleCreateShipment} disabled={!connected}>Create</Button>
-            </Box>
-          </Paper>
+      <Grid container spacing={2} wrap="nowrap">
+        {/* MAP */}
+        <Grid item sx={{ flex: "0 0 60%" }}>
+          <Box
+            sx={{
+              height: "70vh",
+              minHeight: 350,
+              borderRadius: 1,
+              overflow: "hidden",
+              bgcolor: "#f6f6f6",
+              border: "1px solid #e0e0e0",
+            }}
+          >
+            <MapView
+              key={remountKey}
+              shipments={shipments}
+              selectedId={selectedId}
+              onSelect={setSelectedId}
+            />
+          </Box>
         </Grid>
 
-        {/* Process Reading */}
-        <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 3 }}>
-            <Typography variant="h6" gutterBottom>🌡️ Add Sensor Reading</Typography>
-            <Box sx={{ display: "grid", gap: 1.5 }}>
-              <TextField label="Shipment ID" type="number" value={newReading.shipmentId}
-                onChange={e => setNewReading(r => ({ ...r, shipmentId: e.target.value }))} />
-              <TextField label="Temperature (°C)" type="number" value={newReading.temperature}
-                onChange={e => setNewReading(r => ({ ...r, temperature: e.target.value }))} />
-              <Button variant="contained" onClick={handleProcessReading} disabled={!connected}>Add Reading</Button>
+        {/* TRUCK LIST */}
+        <Grid item sx={{ flex: "0 0 34vw" }}>
+            <Box
+              sx={{
+                height: "70vh",
+                minHeight: 350,
+                borderRadius: 1,
+                overflow: "hidden",
+                bgcolor: "#f6f6f6",
+                border: "1px solid #e0e0e0",
+              }}
+            >
+              <TruckList
+                shipments={shipments}
+                selectedId={selectedId}
+                onSelect={setSelectedId}
+              />
             </Box>
           </Paper>
         </Grid>
@@ -236,9 +181,7 @@ export default function App() {
                     <Typography variant="body2" color="text.secondary">Range: {s.min_temp}–{s.max_temp} °C</Typography>
                     <Typography variant="body2" color="text.secondary">Current temp: {s.current_temp ?? "—"}</Typography>
                     <Typography variant="body2" color="text.secondary">
-                      Start: ({s.start_location?.latitude}, {s.start_location?.longitude}) →
-                      Current: ({s.current_location?.latitude || "—"}, {s.current_location?.longitude || "—"}) →
-                      End: ({s.end_location?.latitude}, {s.end_location?.longitude})
+                      {s.start_location} → {s.current_location || "—"} → {s.end_location}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">Sender: {s.sender_information}</Typography>
                     <Typography variant="body2" color="text.secondary">Receiver: {s.receiver_information}</Typography>
@@ -289,6 +232,13 @@ export default function App() {
           </Paper>
         </Grid>
       </Grid>
+
+      {/* ALERT FEED (bottom full-width) */}
+        <AlertFeed
+          alerts={alerts}
+          showAll={showAllAlerts}
+          onToggle={setShowAllAlerts}
+        />
     </Container>
   );
 }

@@ -1,9 +1,9 @@
 use spacetimedb::{reducer, table, ReducerContext, SpacetimeType, Table, Timestamp};
 
-#[derive(SpacetimeType, Clone, Debug)]
+#[derive(SpacetimeType)]
 pub struct LatLongLocation {
-    pub latitude: f64,
-    pub longitude: f64,
+    latitude: f64,
+    longitude: f64,
 }
 
 // ---------- Tables ----------
@@ -11,46 +11,36 @@ pub struct LatLongLocation {
 #[table(name = shipment, public)]
 pub struct Shipment {
     #[primary_key]
-    pub id: i32,
-    pub content: String,
-    pub status: String, // "unassigned" | "in transit" | "delayed" | "delivered"
-    pub min_temp: f32,
-    pub max_temp: f32,
-    pub current_temp: Option<f32>,
-    pub start_location: LatLongLocation,
-    pub current_location: LatLongLocation,
-    pub end_location: LatLongLocation,
-    pub sender_information: String,
-    pub receiver_information: String,
-    pub timestamp: Timestamp, // ms since epoch
-    pub assigned_driver_id: Option<u64>,
+    id: i32,
+    content: String,
+    status: String, // "processing" | "in transit" | "delayed" | "delivered"
+    min_temp: f32,
+    max_temp: f32,
+    current_temp: Option<f32>,
+    start_location: LatLongLocation,
+    current_location: LatLongLocation,
+    end_location: LatLongLocation,
+    sender_information: String,
+    receiver_information: String,
+    timestamp: Timestamp, // ms since epoch
 }
 
 #[table(name = sensor_reading, public)]
 pub struct SensorReading {
     #[primary_key]
-    pub id: i64, // auto-like: use timestamp+shipment to make unique if desired
-    pub shipment_id: i32,
-    pub timestamp: Timestamp,
-    pub temperature: f32,
+    id: i64, // auto-like: use timestamp+shipment to make unique if desired
+    shipment_id: i32,
+    timestamp: Timestamp,
+    temperature: f32,
 }
 
 #[table(name = alert, public)]
 pub struct Alert {
     #[primary_key]
-    pub id: i64,
-    pub shipment_id: i32,
-    pub timestamp: Timestamp,
-    pub message: String,
-}
-
-#[table(name = driver, public)]
-pub struct Transporter {
-    #[primary_key]
-    pub id: u64,
-    pub status: String, // "idle" | "busy" | "off-duty"
-    pub current_location: LatLongLocation,
-    pub timestamp: Timestamp,
+    id: i64,
+    shipment_id: i32,
+    timestamp: Timestamp,
+    message: String,
 }
 
 // ---------- Reducers ----------
@@ -60,12 +50,15 @@ pub fn create_shipment(
     ctx: &ReducerContext,
     id: i32,
     content: String,
+    status: String,
     min_temp: f32,
     max_temp: f32,
     start_location: LatLongLocation,
+    current_location: LatLongLocation,
     end_location: LatLongLocation,
     sender_information: String,
     receiver_information: String,
+    timestamp: Timestamp,
 ) -> Result<(), String> {
     if ctx.db.shipment().id().find(id).is_some() {
         return Err(format!("shipment {id} already exists"));
@@ -73,17 +66,16 @@ pub fn create_shipment(
     ctx.db.shipment().insert(Shipment {
         id,
         content,
-        status: "unassigned".to_string(),
+        status,
         min_temp,
         max_temp,
         current_temp: None,
-        current_location: start_location.clone(),
         start_location,
+        current_location,
         end_location,
         sender_information,
         receiver_information,
-        timestamp: ctx.timestamp,
-        assigned_driver_id: None,
+        timestamp,
     });
     Ok(())
 }
@@ -128,42 +120,10 @@ pub fn process_sensor_reading(
 }
 
 #[reducer]
-pub fn create_driver(
-    ctx: &ReducerContext,
-    id: u64,
-    status: String,
-    current_location: LatLongLocation,
-) -> Result<(), String> {
-    ctx.db.driver().insert(Transporter {
-        id,
-        status,
-        current_location,
-        timestamp: ctx.timestamp,
-    });
-    Ok(())
-}
-
-#[reducer]
-pub fn assign_driver_to_shipment(
-    ctx: &ReducerContext,
-    shipment_id: i32,
-    driver_id: u64,
-) -> Result<(), String> {
-    let Some(mut shipment) = ctx.db.shipment().id().find(shipment_id) else {
+pub fn get_shipment_status(ctx: &ReducerContext, shipment_id: i32) -> Result<(), String> {
+    if ctx.db.shipment().id().find(shipment_id).is_none() {
         return Err(format!("unknown shipment {shipment_id}"));
-    };
-    let Some(mut driver) = ctx.db.driver().id().find(driver_id) else {
-        return Err(format!("unknown driver {driver_id}"));
-    };
-
-    shipment.assigned_driver_id = Some(driver_id);
-    shipment.status = "in transit".to_string();
-    driver.status = "busy".to_string();
-
-    ctx.db.shipment().id().update(shipment);
-    ctx.db.driver().id().update(driver);
-
-    log::info!("Assigned driver {} to shipment {}", driver_id, shipment_id);
-
+    }
+    // No-op reducer (kept for parity with your UI). Could compute/return more info if desired.
     Ok(())
 }
