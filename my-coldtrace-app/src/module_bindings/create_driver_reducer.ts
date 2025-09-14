@@ -33,30 +33,36 @@ import {
   type SubscriptionEventContextInterface,
 } from "@clockworklabs/spacetimedb-sdk";
 
-export type GetShipmentStatus = {
-  shipmentId: number,
+import { LatLongLocation as __LatLongLocation } from "./lat_long_location_type";
+
+export type CreateDriver = {
+  id: bigint,
+  status: string,
+  currentLocation: __LatLongLocation,
 };
 
 /**
  * A namespace for generated helper functions.
  */
-export namespace GetShipmentStatus {
+export namespace CreateDriver {
   /**
   * A function which returns this type represented as an AlgebraicType.
   * This function is derived from the AlgebraicType used to generate this type.
   */
   export function getTypeScriptAlgebraicType(): AlgebraicType {
     return AlgebraicType.createProductType([
-      new ProductTypeElement("shipmentId", AlgebraicType.createI32Type()),
+      new ProductTypeElement("id", AlgebraicType.createU64Type()),
+      new ProductTypeElement("status", AlgebraicType.createStringType()),
+      new ProductTypeElement("currentLocation", __LatLongLocation.getTypeScriptAlgebraicType()),
     ]);
   }
 
-  export function serialize(writer: BinaryWriter, value: GetShipmentStatus): void {
-    GetShipmentStatus.getTypeScriptAlgebraicType().serialize(writer, value);
+  export function serialize(writer: BinaryWriter, value: CreateDriver): void {
+    CreateDriver.getTypeScriptAlgebraicType().serialize(writer, value);
   }
 
-  export function deserialize(reader: BinaryReader): GetShipmentStatus {
-    return GetShipmentStatus.getTypeScriptAlgebraicType().deserialize(reader);
+  export function deserialize(reader: BinaryReader): CreateDriver {
+    return CreateDriver.getTypeScriptAlgebraicType().deserialize(reader);
   }
 
 }
