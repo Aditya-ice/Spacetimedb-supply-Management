@@ -148,7 +148,7 @@ export default function App() {
         </Grid>
 
         {/* TRUCK LIST */}
-        <Grid item sx={{ flex: "0 0 40%" }}>
+        <Grid item sx={{ flex: "0 0 34vw" }}>
             <Box
               sx={{
                 height: "70vh",
