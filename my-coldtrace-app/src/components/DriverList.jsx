@@ -19,25 +19,34 @@ const DriverList = ({ drivers = [], selectedId, onSelect, onCreateDriver }) => {
     setNewDriver((prev) => ({ ...prev, [name]: value }));
   };
 
+  // Replace your entire handleCreate function with this one.
+
   const handleCreate = () => {
-    // --- FIX #1: VALIDATION AND PARSING ---
-    // Check for empty fields before submitting
+    // --- PART 1: VALIDATION (You already have this) ---
     if (!newDriver.id || !newDriver.current_lat || !newDriver.current_lng) {
       alert("Please fill in all fields for the new driver.");
       return;
     }
 
-    // Ensure numeric values are correctly parsed
-    const driverData = {
-      ...newDriver,
-      id: BigInt(newDriver.id), // Convert to BigInt as per backend schema
-      current_lat: parseFloat(newDriver.current_lat),
-      current_lng: parseFloat(newDriver.current_lng),
+    // --- PART 2: DATA TYPE CONVERSION (This is the missing piece) ---
+    const formattedDriverData = {
+      ...newDriver, // Copies status and any other properties
+      id: newDriver.id, // Pass the ID as a string; App.jsx will handle BigInt conversion
+      current_lat: parseFloat(newDriver.current_lat), // Convert lat string to a number
+      current_lng: parseFloat(newDriver.current_lng), // Convert lng string to a number
     };
 
-    onCreateDriver(driverData);
+    // --- PART 3: FINAL CHECK & SUBMISSION ---
+    // Verify that the conversion to numbers was successful
+    if (isNaN(formattedDriverData.current_lat) || isNaN(formattedDriverData.current_lng)) {
+      alert("Latitude and Longitude must be valid numbers.");
+      return;
+    }
 
-    // Reset form after submission
+    // Now, send the CLEAN and CORRECTLY TYPED data to App.jsx
+    onCreateDriver(formattedDriverData);
+
+    // Reset the form
     setNewDriver({ id: "", status: "available", current_lat: "", current_lng: "" });
   };
 
