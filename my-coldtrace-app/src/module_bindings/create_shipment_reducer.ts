@@ -41,11 +41,9 @@ export type CreateShipment = {
   minTemp: number,
   maxTemp: number,
   startLocation: __LatLongLocation,
-  currentLocation: __LatLongLocation,
   endLocation: __LatLongLocation,
   senderInformation: string,
   receiverInformation: string,
-  timestamp: Timestamp,
 };
 
 /**
@@ -63,11 +61,9 @@ export namespace CreateShipment {
       new ProductTypeElement("minTemp", AlgebraicType.createF32Type()),
       new ProductTypeElement("maxTemp", AlgebraicType.createF32Type()),
       new ProductTypeElement("startLocation", __LatLongLocation.getTypeScriptAlgebraicType()),
-      new ProductTypeElement("currentLocation", __LatLongLocation.getTypeScriptAlgebraicType()),
       new ProductTypeElement("endLocation", __LatLongLocation.getTypeScriptAlgebraicType()),
       new ProductTypeElement("senderInformation", AlgebraicType.createStringType()),
       new ProductTypeElement("receiverInformation", AlgebraicType.createStringType()),
-      new ProductTypeElement("timestamp", AlgebraicType.createTimestampType()),
     ]);
   }
 

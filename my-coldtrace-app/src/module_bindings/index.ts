@@ -40,8 +40,6 @@ import { CreateDriver } from "./create_driver_reducer.ts";
 export { CreateDriver };
 import { CreateShipment } from "./create_shipment_reducer.ts";
 export { CreateShipment };
-import { GetShipmentStatus } from "./get_shipment_status_reducer.ts";
-export { GetShipmentStatus };
 import { ProcessSensorReading } from "./process_sensor_reading_reducer.ts";
 export { ProcessSensorReading };
 
@@ -119,10 +117,6 @@ const REMOTE_MODULE = {
       reducerName: "create_shipment",
       argsType: CreateShipment.getTypeScriptAlgebraicType(),
     },
-    get_shipment_status: {
-      reducerName: "get_shipment_status",
-      argsType: GetShipmentStatus.getTypeScriptAlgebraicType(),
-    },
     process_sensor_reading: {
       reducerName: "process_sensor_reading",
       argsType: ProcessSensorReading.getTypeScriptAlgebraicType(),
@@ -160,7 +154,6 @@ export type Reducer = never
 | { name: "AssignDriverToShipment", args: AssignDriverToShipment }
 | { name: "CreateDriver", args: CreateDriver }
 | { name: "CreateShipment", args: CreateShipment }
-| { name: "GetShipmentStatus", args: GetShipmentStatus }
 | { name: "ProcessSensorReading", args: ProcessSensorReading }
 ;
 
@@ -183,52 +176,36 @@ export class RemoteReducers {
     this.connection.offReducer("assign_driver_to_shipment", callback);
   }
 
-  createDriver(id: bigint, status: string, currentLocation: LatLongLocation, timestamp: Timestamp) {
-    const __args = { id, status, currentLocation, timestamp };
+  createDriver(id: bigint, status: string, currentLocation: LatLongLocation) {
+    const __args = { id, status, currentLocation };
     let __writer = new BinaryWriter(1024);
     CreateDriver.getTypeScriptAlgebraicType().serialize(__writer, __args);
     let __argsBuffer = __writer.getBuffer();
     this.connection.callReducer("create_driver", __argsBuffer, this.setCallReducerFlags.createDriverFlags);
   }
 
-  onCreateDriver(callback: (ctx: ReducerEventContext, id: bigint, status: string, currentLocation: LatLongLocation, timestamp: Timestamp) => void) {
+  onCreateDriver(callback: (ctx: ReducerEventContext, id: bigint, status: string, currentLocation: LatLongLocation) => void) {
     this.connection.onReducer("create_driver", callback);
   }
 
-  removeOnCreateDriver(callback: (ctx: ReducerEventContext, id: bigint, status: string, currentLocation: LatLongLocation, timestamp: Timestamp) => void) {
+  removeOnCreateDriver(callback: (ctx: ReducerEventContext, id: bigint, status: string, currentLocation: LatLongLocation) => void) {
     this.connection.offReducer("create_driver", callback);
   }
 
-  createShipment(id: number, content: string, minTemp: number, maxTemp: number, startLocation: LatLongLocation, currentLocation: LatLongLocation, endLocation: LatLongLocation, senderInformation: string, receiverInformation: string, timestamp: Timestamp) {
-    const __args = { id, content, minTemp, maxTemp, startLocation, currentLocation, endLocation, senderInformation, receiverInformation, timestamp };
+  createShipment(id: number, content: string, minTemp: number, maxTemp: number, startLocation: LatLongLocation, endLocation: LatLongLocation, senderInformation: string, receiverInformation: string) {
+    const __args = { id, content, minTemp, maxTemp, startLocation, endLocation, senderInformation, receiverInformation };
     let __writer = new BinaryWriter(1024);
     CreateShipment.getTypeScriptAlgebraicType().serialize(__writer, __args);
     let __argsBuffer = __writer.getBuffer();
     this.connection.callReducer("create_shipment", __argsBuffer, this.setCallReducerFlags.createShipmentFlags);
   }
 
-  onCreateShipment(callback: (ctx: ReducerEventContext, id: number, content: string, minTemp: number, maxTemp: number, startLocation: LatLongLocation, currentLocation: LatLongLocation, endLocation: LatLongLocation, senderInformation: string, receiverInformation: string, timestamp: Timestamp) => void) {
+  onCreateShipment(callback: (ctx: ReducerEventContext, id: number, content: string, minTemp: number, maxTemp: number, startLocation: LatLongLocation, endLocation: LatLongLocation, senderInformation: string, receiverInformation: string) => void) {
     this.connection.onReducer("create_shipment", callback);
   }
 
-  removeOnCreateShipment(callback: (ctx: ReducerEventContext, id: number, content: string, minTemp: number, maxTemp: number, startLocation: LatLongLocation, currentLocation: LatLongLocation, endLocation: LatLongLocation, senderInformation: string, receiverInformation: string, timestamp: Timestamp) => void) {
+  removeOnCreateShipment(callback: (ctx: ReducerEventContext, id: number, content: string, minTemp: number, maxTemp: number, startLocation: LatLongLocation, endLocation: LatLongLocation, senderInformation: string, receiverInformation: string) => void) {
     this.connection.offReducer("create_shipment", callback);
-  }
-
-  getShipmentStatus(shipmentId: number) {
-    const __args = { shipmentId };
-    let __writer = new BinaryWriter(1024);
-    GetShipmentStatus.getTypeScriptAlgebraicType().serialize(__writer, __args);
-    let __argsBuffer = __writer.getBuffer();
-    this.connection.callReducer("get_shipment_status", __argsBuffer, this.setCallReducerFlags.getShipmentStatusFlags);
-  }
-
-  onGetShipmentStatus(callback: (ctx: ReducerEventContext, shipmentId: number) => void) {
-    this.connection.onReducer("get_shipment_status", callback);
-  }
-
-  removeOnGetShipmentStatus(callback: (ctx: ReducerEventContext, shipmentId: number) => void) {
-    this.connection.offReducer("get_shipment_status", callback);
   }
 
   processSensorReading(shipmentId: number, timestamp: Timestamp, temperature: number) {
@@ -263,11 +240,6 @@ export class SetReducerFlags {
   createShipmentFlags: CallReducerFlags = 'FullUpdate';
   createShipment(flags: CallReducerFlags) {
     this.createShipmentFlags = flags;
-  }
-
-  getShipmentStatusFlags: CallReducerFlags = 'FullUpdate';
-  getShipmentStatus(flags: CallReducerFlags) {
-    this.getShipmentStatusFlags = flags;
   }
 
   processSensorReadingFlags: CallReducerFlags = 'FullUpdate';

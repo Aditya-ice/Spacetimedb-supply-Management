@@ -36,7 +36,6 @@ import { LatLongLocation as __LatLongLocation } from "./lat_long_location_type";
 
 export type Shipment = {
   id: number,
-  assignedDriverId: bigint | undefined,
   content: string,
   status: string,
   minTemp: number,
@@ -48,6 +47,7 @@ export type Shipment = {
   senderInformation: string,
   receiverInformation: string,
   timestamp: Timestamp,
+  assignedDriverId: bigint | undefined,
 };
 
 /**
@@ -61,7 +61,6 @@ export namespace Shipment {
   export function getTypeScriptAlgebraicType(): AlgebraicType {
     return AlgebraicType.createProductType([
       new ProductTypeElement("id", AlgebraicType.createI32Type()),
-      new ProductTypeElement("assignedDriverId", AlgebraicType.createOptionType(AlgebraicType.createU64Type())),
       new ProductTypeElement("content", AlgebraicType.createStringType()),
       new ProductTypeElement("status", AlgebraicType.createStringType()),
       new ProductTypeElement("minTemp", AlgebraicType.createF32Type()),
@@ -73,6 +72,7 @@ export namespace Shipment {
       new ProductTypeElement("senderInformation", AlgebraicType.createStringType()),
       new ProductTypeElement("receiverInformation", AlgebraicType.createStringType()),
       new ProductTypeElement("timestamp", AlgebraicType.createTimestampType()),
+      new ProductTypeElement("assignedDriverId", AlgebraicType.createOptionType(AlgebraicType.createU64Type())),
     ]);
   }
 

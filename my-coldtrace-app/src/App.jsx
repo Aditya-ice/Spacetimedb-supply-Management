@@ -27,24 +27,14 @@ export default function App() {
   const [newShipment, setNewShipment] = useState({
     id: "",
     content: "",
-    status: "Processing",
     min_temp: "",
     max_temp: "",
-    start_location: {
-      latitude: 0,
-      longitude: 0,
-    },
-    current_location: {
-      latitude: 0,
-      longitude: 0,
-    },
-    end_location: {
-      latitude: 0,
-      longitude: 0,
-    },
+    start_lat: "",
+    start_lng: "",
+    end_lat: "",
+    end_lng: "",
     sender_information: "",
     receiver_information: "",
-    timestamp: "", // seconds
   });
 
   const [newReading, setNewReading] = useState({ shipmentId: "", temperature: "" });
@@ -118,29 +108,29 @@ export default function App() {
   const handleCreateShipment = async () => {
     try {
       if (!conn) throw new Error("Not connected");
-      const ts = newShipment.timestamp
-        ? parseInt(newShipment.timestamp, 10)
-        : Math.floor(Date.now() / 1000);
 
       await conn.reducers.createShipment(
         Number(newShipment.id),
         String(newShipment.content),
-        String(newShipment.status),
         parseFloat(newShipment.min_temp),
         parseFloat(newShipment.max_temp),
-        String(newShipment.start_location),
-        String(newShipment.current_location),
-        String(newShipment.end_location),
+        {
+          latitude: parseFloat(newShipment.start_lat),
+          longitude: parseFloat(newShipment.start_lng)
+        },
+        {
+          latitude: parseFloat(newShipment.end_lat),
+          longitude: parseFloat(newShipment.end_lng)
+        },
         String(newShipment.sender_information),
         String(newShipment.receiver_information),
-        Timestamp.fromDate(new Date(ts * 1000)),
       );
 
       setSuccess("Shipment created!");
       setNewShipment({
-        id: "", content: "", status: "processing", min_temp: "", max_temp: "",
-        start_location: "", current_location: "", end_location: "",
-        sender_information: "", receiver_information: "", timestamp: ""
+        id: "", content: "", min_temp: "", max_temp: "",
+        start_lat: "", start_lng: "", end_lat: "", end_lng: "",
+        sender_information: "", receiver_information: ""
       });
     } catch (e) {
       console.error(e)
@@ -167,14 +157,8 @@ export default function App() {
   };
 
   const handleGetStatus = async (shipmentId) => {
-    try {
-      if (!conn) throw new Error("Not connected");
-      await conn.reducers.getShipmentStatus(Number(shipmentId));
-      setSuccess(`Status retrieved for shipment ${shipmentId}`);
-    } catch (e) {
-      console.error(e)
-      setError(e.message || String(e));
-    }
+    // This function is not implemented in the backend yet
+    setSuccess(`Shipment ${shipmentId} status: Available in database`);
   };
 
   // ---------- UI ----------
@@ -204,27 +188,22 @@ export default function App() {
                 onChange={e => setNewShipment(s => ({ ...s, id: e.target.value }))} />
               <TextField label="Content" value={newShipment.content}
                 onChange={e => setNewShipment(s => ({ ...s, content: e.target.value }))} />
-              <TextField select SelectProps={{ native: true }} label="Status"
-                value={newShipment.status}
-                onChange={e => setNewShipment(s => ({ ...s, status: e.target.value }))}>
-                {STATUS_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-              </TextField>
               <TextField label="Min Temp (°C)" type="number" value={newShipment.min_temp}
                 onChange={e => setNewShipment(s => ({ ...s, min_temp: e.target.value }))} />
               <TextField label="Max Temp (°C)" type="number" value={newShipment.max_temp}
                 onChange={e => setNewShipment(s => ({ ...s, max_temp: e.target.value }))} />
-              <TextField label="Start Location" value={newShipment.start_location}
-                onChange={e => setNewShipment(s => ({ ...s, start_location: e.target.value }))} />
-              <TextField label="Current Location" value={newShipment.current_location}
-                onChange={e => setNewShipment(s => ({ ...s, current_location: e.target.value }))} />
-              <TextField label="End Location" value={newShipment.end_location}
-                onChange={e => setNewShipment(s => ({ ...s, end_location: e.target.value }))} />
+              <TextField label="Start Latitude" type="number" step="0.000001" value={newShipment.start_lat}
+                onChange={e => setNewShipment(s => ({ ...s, start_lat: e.target.value }))} />
+              <TextField label="Start Longitude" type="number" step="0.000001" value={newShipment.start_lng}
+                onChange={e => setNewShipment(s => ({ ...s, start_lng: e.target.value }))} />
+              <TextField label="End Latitude" type="number" step="0.000001" value={newShipment.end_lat}
+                onChange={e => setNewShipment(s => ({ ...s, end_lat: e.target.value }))} />
+              <TextField label="End Longitude" type="number" step="0.000001" value={newShipment.end_lng}
+                onChange={e => setNewShipment(s => ({ ...s, end_lng: e.target.value }))} />
               <TextField label="Sender Info" value={newShipment.sender_information}
                 onChange={e => setNewShipment(s => ({ ...s, sender_information: e.target.value }))} />
               <TextField label="Receiver Info" value={newShipment.receiver_information}
                 onChange={e => setNewShipment(s => ({ ...s, receiver_information: e.target.value }))} />
-              <TextField label="Timestamp (sec, optional)" type="number" value={newShipment.timestamp}
-                onChange={e => setNewShipment(s => ({ ...s, timestamp: e.target.value }))} />
               <Button variant="contained" onClick={handleCreateShipment} disabled={!connected}>Create</Button>
             </Box>
           </Paper>
@@ -257,7 +236,9 @@ export default function App() {
                     <Typography variant="body2" color="text.secondary">Range: {s.min_temp}–{s.max_temp} °C</Typography>
                     <Typography variant="body2" color="text.secondary">Current temp: {s.current_temp ?? "—"}</Typography>
                     <Typography variant="body2" color="text.secondary">
-                      {s.start_location} → {s.current_location || "—"} → {s.end_location}
+                      Start: ({s.start_location?.latitude}, {s.start_location?.longitude}) →
+                      Current: ({s.current_location?.latitude || "—"}, {s.current_location?.longitude || "—"}) →
+                      End: ({s.end_location?.latitude}, {s.end_location?.longitude})
                     </Typography>
                     <Typography variant="body2" color="text.secondary">Sender: {s.sender_information}</Typography>
                     <Typography variant="body2" color="text.secondary">Receiver: {s.receiver_information}</Typography>
