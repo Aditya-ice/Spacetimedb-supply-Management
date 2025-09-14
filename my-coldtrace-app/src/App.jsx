@@ -237,21 +237,30 @@ export default function App() {
     try {
       if (!conn) throw new Error("Not connected");
 
-      console.log("🚛 Creating driver with data:", driverData);
-      console.log("🚛 Current drivers before creation:", drivers.length);
+      // 1. Explicitly extract and convert each piece of data.
+      // This ensures no 'undefined' values are accidentally passed.
+      const id = BigInt(driverData.id);
+      const status = String(driverData.status);
+      const currentLocation = {
+        latitude: parseFloat(driverData.current_lat),
+        longitude: parseFloat(driverData.current_lng)
+      };
+      // 2. Generate the timestamp here, ensuring it's always a valid BigInt.
+      const lastSeen = BigInt(Date.now() * 1000); // Convert to microseconds
 
+      console.log("🚛 Calling createDriver with:", { id, status, currentLocation, lastSeen });
+
+      // 3. Call the reducer with the clean, well-defined variables.
       await conn.reducers.createDriver(
-        BigInt(driverData.id),
-        String(driverData.status),
-        {
-          latitude: parseFloat(driverData.current_lat),
-          longitude: parseFloat(driverData.current_lng)
-        },
-        BigInt(Date.now() * 1000) // Convert to microseconds
+        id,
+        status,
+        currentLocation,
+        lastSeen
       );
 
       console.log("✅ Driver creation reducer called successfully");
       setSuccess("Driver created successfully!");
+
     } catch (e) {
       console.error("❌ Error creating driver:", e);
       setError(e.message || String(e));
