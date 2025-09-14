@@ -126,12 +126,12 @@ export default function App() {
       )}
 
       <Grid container spacing={2} wrap="nowrap">
-        {/* MAP (60vw) */}
-        <Grid item sx={{ flex: "0 0 60vw" }}>
+        {/* MAP */}
+        <Grid item sx={{ flex: "0 0 60%" }}>
           <Box
             sx={{
-              height: "75vh",
-              minHeight: 400,
+              height: "70vh",
+              minHeight: 350,
               borderRadius: 1,
               overflow: "hidden",
               bgcolor: "#f6f6f6",
@@ -147,15 +147,27 @@ export default function App() {
           </Box>
         </Grid>
 
-        {/* TRUCK LIST (40vw) */}
-        <Grid item sx={{ flex: "0 0 40vw" }}>
-          <TruckList
-            shipments={shipments}
-            selectedId={selectedId}
-            onSelect={setSelectedId}
-          />
+        {/* TRUCK LIST */}
+        <Grid item sx={{ flex: "0 0 40%" }}>
+            <Box
+              sx={{
+                height: "70vh",
+                minHeight: 350,
+                borderRadius: 1,
+                overflow: "hidden",
+                bgcolor: "#f6f6f6",
+                border: "1px solid #e0e0e0",
+              }}
+            >
+              <TruckList
+                shipments={shipments}
+                selectedId={selectedId}
+                onSelect={setSelectedId}
+              />
+            </Box>
         </Grid>
       </Grid>
+
       {/* ALERT FEED (bottom full-width) */}
         <AlertFeed
           alerts={alerts}

@@ -4,7 +4,7 @@ import { parseLocation } from "../utils";
 
 export default function TruckList({ shipments, selectedId, onSelect }) {
   return (
-    <Paper sx={{ p: 2, height: 520, display: "flex", flexDirection: "column" }}>
+    <Paper sx={{ p: 2, height:"100%", display: "flex", flexDirection: "column" }}>
       <Typography variant="h6" gutterBottom>Trucks</Typography>
       <div style={{ overflowY: "auto", flex: 1 }}>
         <List dense>
