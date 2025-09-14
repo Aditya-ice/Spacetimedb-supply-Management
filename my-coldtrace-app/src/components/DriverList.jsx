@@ -1,126 +1,103 @@
 import React, { useState } from "react";
-import { Button, TextField, Box, Typography, Paper } from "@mui/material";
+import {
+  Paper, Typography, List, ListItem, ListItemText,
+  TextField, Button, Box, Divider, IconButton, Collapse
+} from "@mui/material";
+import { parseLocation } from "../utils";
 
-// This is the combined and corrected component.
-// It includes both fixes:
-// 1. `drivers = []` to prevent the '.map is not a function' error.
-// 2. The `handleCreate` function validates and parses form data correctly.
-
-const DriverList = ({ drivers = [], selectedId, onSelect, onCreateDriver }) => {
+export default function DriverList({ drivers = [], selectedId, onSelect, onCreateDriver }) {
+  const [showForm, setShowForm] = useState(false);
   const [newDriver, setNewDriver] = useState({
     id: "",
-    status: "available", // Default status
+    status: "available",
     current_lat: "",
     current_lng: "",
   });
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setNewDriver((prev) => ({ ...prev, [name]: value }));
-  };
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const { id, status, current_lat, current_lng } = newDriver;
 
-  // Replace your entire handleCreate function with this one.
-
-  const handleCreate = () => {
-    // --- PART 1: VALIDATION (You already have this) ---
-    if (!newDriver.id || !newDriver.current_lat || !newDriver.current_lng) {
-      alert("Please fill in all fields for the new driver.");
+    if (!id.trim() || !current_lat.trim() || !current_lng.trim()) {
+      alert("Error: Driver ID, Latitude, and Longitude are required.");
       return;
     }
 
-    // --- PART 2: DATA TYPE CONVERSION (This is the missing piece) ---
-    const formattedDriverData = {
-      ...newDriver, // Copies status and any other properties
-      id: newDriver.id, // Pass the ID as a string; App.jsx will handle BigInt conversion
-      current_lat: parseFloat(newDriver.current_lat), // Convert lat string to a number
-      current_lng: parseFloat(newDriver.current_lng), // Convert lng string to a number
+    let driverIdAsBigInt;
+    try {
+      driverIdAsBigInt = BigInt(id.trim());
+    } catch (error) {
+      alert(`Error: Invalid Driver ID "${id}". It must be a whole number.`);
+      return;
+    }
+
+    const finalLat = parseFloat(current_lat);
+    const finalLng = parseFloat(current_lng);
+
+    if (isNaN(finalLat) || isNaN(finalLng)) {
+      alert("Error: Latitude and Longitude must be valid numbers.");
+      return;
+    }
+
+    const finalDriverData = {
+      id: driverIdAsBigInt,
+      status: status,
+      current_lat: finalLat,
+      current_lng: finalLng,
     };
 
-    // --- PART 3: FINAL CHECK & SUBMISSION ---
-    // Verify that the conversion to numbers was successful
-    if (isNaN(formattedDriverData.current_lat) || isNaN(formattedDriverData.current_lng)) {
-      alert("Latitude and Longitude must be valid numbers.");
-      return;
+    if (onCreateDriver) {
+      await onCreateDriver(finalDriverData);
+      setNewDriver({ id: "", status: "available", current_lat: "", current_lng: "" });
+      setShowForm(false);
     }
-
-    // Now, send the CLEAN and CORRECTLY TYPED data to App.jsx
-    onCreateDriver(formattedDriverData);
-
-    // Reset the form
-    setNewDriver({ id: "", status: "available", current_lat: "", current_lng: "" });
   };
 
   return (
-    <Box sx={{ p: 2, display: "flex", flexDirection: "column", height: "100%" }}>
-      <Typography variant="h6" sx={{ mb: 1 }}>
-        Drivers
-      </Typography>
-      <Box sx={{ flexGrow: 1, overflowY: "auto", pr: 1 }}>
-        {/* --- FIX #2: `drivers` is now guaranteed to be an array --- */}
-        {drivers.map((driver) => (
-          <Paper
-            key={String(driver.id)}
-            onClick={() => onSelect(String(driver.id))}
-            elevation={selectedId === String(driver.id) ? 4 : 1}
-            sx={{
-              p: 1.5,
-              mb: 1,
-              cursor: "pointer",
-              border: selectedId === String(driver.id) ? "2px solid #1976d2" : "2px solid transparent",
-              transition: "border 0.2s, box-shadow 0.2s",
-            }}
-          >
-            <Typography variant="body2">
-              <strong>ID:</strong> {String(driver.id)}
-            </Typography>
-            <Typography variant="body2">
-              <strong>Status:</strong> {driver.status}
-            </Typography>
-          </Paper>
-        ))}
+    <Paper sx={{ p: 2, height: "100%", display: "flex", flexDirection: "column" }}>
+      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1 }}>
+        <Typography variant="h6">Drivers</Typography>
+        <IconButton size="small" onClick={() => setShowForm(!showForm)} color="primary">
+          {showForm ? "−" : "+"}
+        </IconButton>
       </Box>
-      <Box component="form" noValidate autoComplete="off" sx={{ mt: 2 }}>
-        <Typography variant="subtitle1" sx={{ mb: 1 }}>
-          Add New Driver
-        </Typography>
-        <TextField
-          label="Driver ID"
-          name="id"
-          value={newDriver.id}
-          onChange={handleInputChange}
-          fullWidth
-          margin="dense"
-          size="small"
-        />
-        <TextField
-          label="Latitude"
-          name="current_lat"
-          value={newDriver.current_lat}
-          onChange={handleInputChange}
-          fullWidth
-          margin="dense"
-          size="small"
-        />
-        <TextField
-          label="Longitude"
-          name="current_lng"
-          value={newDriver.current_lng}
-          onChange={handleInputChange}
-          fullWidth
-          margin="dense"
-          size="small"
-        />
-        <Button
-          variant="contained"
-          onClick={handleCreate}
-          fullWidth
-          sx={{ mt: 1 }}
-        >
-          Add Driver
-        </Button>
-      </Box>
-    </Box>
-  );
-};
 
-export default DriverList;
+      <Collapse in={showForm}>
+        <Box component="form" onSubmit={handleSubmit} sx={{ mb: 2, p: 2, bgcolor: "#f5f5f5", borderRadius: 1 }}>
+          <Typography variant="subtitle2" gutterBottom>Add New Driver</Typography>
+          <Box sx={{ display: "grid", gap: 1, gridTemplateColumns: "1fr 1fr" }}>
+            <TextField size="small" label="Driver ID" type="text" inputMode="numeric" value={newDriver.id} onChange={e => setNewDriver(s => ({ ...s, id: e.target.value }))} required />
+            <TextField size="small" label="Status" select value={newDriver.status} onChange={e => setNewDriver(s => ({ ...s, status: e.target.value }))} SelectProps={{ native: true }} required>
+              <option value="available">Available</option>
+              <option value="busy">Busy</option>
+              <option value="offline">Offline</option>
+            </TextField>
+            <TextField size="small" label="Current Lat" type="text" inputMode="decimal" value={newDriver.current_lat} onChange={e => setNewDriver(s => ({ ...s, current_lat: e.target.value }))} required />
+            <TextField size="small" label="Current Lng" type="text" inputMode="decimal" value={newDriver.current_lng} onChange={e => setNewDriver(s => ({ ...s, current_lng: e.target.value }))} required />
+          </Box>
+          <Box sx={{ display: "flex", gap: 1, mt: 2 }}>
+            <Button type="submit" variant="contained" size="small">Create Driver</Button>
+            <Button type="button" variant="outlined" size="small" onClick={() => setShowForm(false)}>Cancel</Button>
+          </Box>
+        </Box>
+      </Collapse>
+
+      <Divider sx={{ mb: 1 }} />
+
+      <div style={{ overflowY: "auto", flex: 1 }}>
+        <List dense>
+          {(drivers || []).map((d) => {
+            const isSel = String(d.id) === String(selectedId);
+            const loc = parseLocation(d.currentLocation);
+            return (
+              <ListItem key={d.id.toString()} button selected={isSel} onClick={() => onSelect?.(d.id)} sx={{ borderRadius: 2, mb: 0.5 }}>
+                <ListItemText primary={`Driver #${d.id} — ${d.status}`} secondary={loc ? `${loc[0].toFixed(3)}, ${loc[1].toFixed(3)}` : "no location"} />
+              </ListItem>
+            );
+          })}
+          {(!drivers || drivers.length === 0) && <ListItem><ListItemText primary="No drivers yet" /></ListItem>}
+        </List>
+      </div>
+    </Paper>
+  );
+}
