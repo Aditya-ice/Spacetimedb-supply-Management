@@ -9,7 +9,7 @@ import {
 import { DbConnection } from "./module_bindings";
 import { Identity, Timestamp } from "@clockworklabs/spacetimedb-sdk";
 
-const STATUS_OPTIONS = ["processing", "in transit", "delayed", "delivered"];
+const STATUS_OPTIONS = ["Processing", "In Transit", "Delayed", "Delivered"];
 
 export default function App() {
   const [conn, setConn] = useState(null);              // DbConnection | null
@@ -27,7 +27,7 @@ export default function App() {
   const [newShipment, setNewShipment] = useState({
     id: "",
     content: "",
-    status: "processing",
+    status: "Processing",
     min_temp: "",
     max_temp: "",
     start_location: {

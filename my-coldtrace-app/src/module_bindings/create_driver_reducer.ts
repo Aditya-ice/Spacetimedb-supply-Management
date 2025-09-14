@@ -35,48 +35,36 @@ import {
 
 import { LatLongLocation as __LatLongLocation } from "./lat_long_location_type";
 
-export type CreateShipment = {
-  id: number,
-  content: string,
-  minTemp: number,
-  maxTemp: number,
-  startLocation: __LatLongLocation,
+export type CreateDriver = {
+  id: bigint,
+  status: string,
   currentLocation: __LatLongLocation,
-  endLocation: __LatLongLocation,
-  senderInformation: string,
-  receiverInformation: string,
   timestamp: Timestamp,
 };
 
 /**
  * A namespace for generated helper functions.
  */
-export namespace CreateShipment {
+export namespace CreateDriver {
   /**
   * A function which returns this type represented as an AlgebraicType.
   * This function is derived from the AlgebraicType used to generate this type.
   */
   export function getTypeScriptAlgebraicType(): AlgebraicType {
     return AlgebraicType.createProductType([
-      new ProductTypeElement("id", AlgebraicType.createI32Type()),
-      new ProductTypeElement("content", AlgebraicType.createStringType()),
-      new ProductTypeElement("minTemp", AlgebraicType.createF32Type()),
-      new ProductTypeElement("maxTemp", AlgebraicType.createF32Type()),
-      new ProductTypeElement("startLocation", __LatLongLocation.getTypeScriptAlgebraicType()),
+      new ProductTypeElement("id", AlgebraicType.createU64Type()),
+      new ProductTypeElement("status", AlgebraicType.createStringType()),
       new ProductTypeElement("currentLocation", __LatLongLocation.getTypeScriptAlgebraicType()),
-      new ProductTypeElement("endLocation", __LatLongLocation.getTypeScriptAlgebraicType()),
-      new ProductTypeElement("senderInformation", AlgebraicType.createStringType()),
-      new ProductTypeElement("receiverInformation", AlgebraicType.createStringType()),
       new ProductTypeElement("timestamp", AlgebraicType.createTimestampType()),
     ]);
   }
 
-  export function serialize(writer: BinaryWriter, value: CreateShipment): void {
-    CreateShipment.getTypeScriptAlgebraicType().serialize(writer, value);
+  export function serialize(writer: BinaryWriter, value: CreateDriver): void {
+    CreateDriver.getTypeScriptAlgebraicType().serialize(writer, value);
   }
 
-  export function deserialize(reader: BinaryReader): CreateShipment {
-    return CreateShipment.getTypeScriptAlgebraicType().deserialize(reader);
+  export function deserialize(reader: BinaryReader): CreateDriver {
+    return CreateDriver.getTypeScriptAlgebraicType().deserialize(reader);
   }
 
 }
